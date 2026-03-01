@@ -1,2 +1,8 @@
 # to-do-list
-mission app mang
+
+Smart Personal Todo (Next.js 16 + TypeScript + Supabase Auth + Postgres)
+
+## Local Development
+```bash
+npm install
+npm run dev
