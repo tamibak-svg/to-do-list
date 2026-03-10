@@ -1,14 +1,11 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import type { Project, Task, TaskStatus } from "@/types/models";
+import type { Project, Task, TaskStatus, TaskPriority } from "@/types/models";
 import AppShell from "@/components/AppShell";
 import ProjectsSidebar from "@/components/ProjectsSidebar";
 import TasksTable from "@/components/TasksTable";
-import {
-  createProject,
-  deleteProject,
-} from "@/app/actions/projects";
+import { createProject, deleteProject } from "@/app/actions/projects";
 import {
   createTask,
   updateTask,
@@ -16,7 +13,7 @@ import {
   type UpdateTaskPatch,
 } from "@/app/actions/tasks";
 
-// ── Deterministic color from project id (no DB column needed) ────────────────
+// ── Deterministic color from project id ──────────────────────────────────────
 const PALETTE = [
   "#6366f1", "#10b981", "#f59e0b", "#ef4444",
   "#3b82f6", "#8b5cf6", "#ec4899",
@@ -27,7 +24,11 @@ function projectColor(id: string): string {
   return PALETTE[Math.abs(hash) % PALETTE.length];
 }
 
-// ── Edit Modal ───────────────────────────────────────────────────────────────
+// ── Shared UI constants ───────────────────────────────────────────────────────
+const INPUT_CLS =
+  "w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-900 " +
+  "focus:outline-none focus:ring-2 focus:ring-[#6c3fff]/50 focus:border-[#6c3fff] transition-colors bg-white";
+const LABEL_CLS = "block text-sm font-medium text-gray-700 mb-1.5";
 
 const STATUS_LABELS: Record<TaskStatus, string> = {
   todo: "לביצוע",
@@ -35,25 +36,236 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
   done: "הושלם",
 };
 
+const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
+  { value: 1, label: "גבוהה" },
+  { value: 2, label: "בינונית" },
+  { value: 3, label: "נמוכה" },
+];
+
+// ── Close (X) button shared icon ─────────────────────────────────────────────
+function CloseButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    </button>
+  );
+}
+
+// ── Modal overlay wrapper ─────────────────────────────────────────────────────
+function ModalOverlay({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg max-h-[92vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ── Edit Modal ────────────────────────────────────────────────────────────────
+
 type EditModalProps = {
   task: Task;
   onSave: (patch: UpdateTaskPatch) => Promise<void>;
+  onDelete: () => Promise<void>;
   onClose: () => void;
 };
 
-function EditModal({ task, onSave, onClose }: EditModalProps) {
+function EditModal({ task, onSave, onDelete, onClose }: EditModalProps) {
   const [title, setTitle] = useState(task.title);
+  const [forWhom, setForWhom] = useState(task.for_whom ?? "");
+  const [description, setDescription] = useState(task.description ?? "");
   const [status, setStatus] = useState<TaskStatus>(task.status);
-  const [priority, setPriority] = useState<1 | 2 | 3>(task.priority);
+  const [priority, setPriority] = useState<TaskPriority>(task.priority);
   const [dueDate, setDueDate] = useState(task.due_date ?? "");
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const handleSave = async () => {
     if (!title.trim()) return;
     setSaving(true);
     await onSave({
       title: title.trim(),
+      for_whom: forWhom.trim() || null,
+      description: description.trim() || null,
       status,
+      priority,
+      due_date: dueDate || null,
+      // Set completed_at when first marking done; clear it when un-done
+      completed_at:
+        status === "done" && task.status !== "done"
+          ? new Date().toISOString()
+          : status !== "done"
+          ? null
+          : task.completed_at ?? null,
+    });
+    setSaving(false);
+  };
+
+  const handleDelete = async () => {
+    if (!confirm("למחוק את המשימה לצמיתות?")) return;
+    setDeleting(true);
+    await onDelete();
+    setDeleting(false);
+  };
+
+  return (
+    <ModalOverlay onClose={onClose}>
+      {/* Sticky header */}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl z-10">
+        <h2 className="text-lg font-bold text-gray-900">עריכת משימה</h2>
+        <CloseButton onClick={onClose} />
+      </div>
+
+      {/* Fields */}
+      <div className="px-5 py-4 space-y-4">
+        {/* Title */}
+        <div>
+          <label className={LABEL_CLS}>כותרת המשימה</label>
+          <input
+            autoFocus
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSave()}
+            className={INPUT_CLS}
+            placeholder="כותרת..."
+          />
+        </div>
+
+        {/* for_whom */}
+        <div>
+          <label className={LABEL_CLS}>עבור</label>
+          <input
+            value={forWhom}
+            onChange={(e) => setForWhom(e.target.value)}
+            className={INPUT_CLS}
+            placeholder="למי המשימה מיועדת?"
+          />
+        </div>
+
+        {/* Description — large free-text area */}
+        <div>
+          <label className={LABEL_CLS}>פרטים ותוכן</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={5}
+            className={`${INPUT_CLS} resize-y min-h-[80px]`}
+            placeholder="תיאור, לינקים, הוראות, מספרים, הערות..."
+          />
+        </div>
+
+        {/* Priority + Status — two columns */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={LABEL_CLS}>עדיפות</label>
+            <select
+              value={priority}
+              onChange={(e) => setPriority(Number(e.target.value) as TaskPriority)}
+              className={INPUT_CLS}
+            >
+              {PRIORITY_OPTIONS.map((p) => (
+                <option key={p.value} value={p.value}>{p.label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className={LABEL_CLS}>סטטוס</label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as TaskStatus)}
+              className={INPUT_CLS}
+            >
+              {(Object.entries(STATUS_LABELS) as [TaskStatus, string][]).map(([val, label]) => (
+                <option key={val} value={val}>{label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Due date */}
+        <div>
+          <label className={LABEL_CLS}>תאריך יעד</label>
+          <input
+            type="date"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+            className={INPUT_CLS}
+          />
+        </div>
+      </div>
+
+      {/* Footer: delete left, cancel+save right */}
+      <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100">
+        <button
+          onClick={handleDelete}
+          disabled={deleting}
+          className="text-sm text-red-500 hover:text-red-700 font-medium px-3 py-2 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
+        >
+          {deleting ? "מוחק..." : "מחיקת משימה"}
+        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            ביטול
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={!title.trim() || saving}
+            className="px-4 py-2 text-sm font-semibold bg-[#6c3fff] text-white rounded-lg hover:bg-[#5a2de0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? "שומר..." : "שמירה"}
+          </button>
+        </div>
+      </div>
+    </ModalOverlay>
+  );
+}
+
+// ── New Task Modal ────────────────────────────────────────────────────────────
+
+type NewTaskInput = {
+  title: string;
+  for_whom?: string;
+  description?: string;
+  priority: TaskPriority;
+  due_date?: string;
+};
+
+type NewTaskModalProps = {
+  onAdd: (input: NewTaskInput) => Promise<void>;
+  onClose: () => void;
+};
+
+function NewTaskModal({ onAdd, onClose }: NewTaskModalProps) {
+  const [title, setTitle] = useState("");
+  const [forWhom, setForWhom] = useState("");
+  const [description, setDescription] = useState("");
+  const [priority, setPriority] = useState<TaskPriority>(2);
+  const [dueDate, setDueDate] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!title.trim()) return;
+    setSaving(true);
+    await onAdd({
+      title: title.trim(),
+      for_whom: forWhom.trim() || undefined,
+      description: description.trim() || undefined,
       priority,
       due_date: dueDate || undefined,
     });
@@ -61,108 +273,102 @@ function EditModal({ task, onSave, onClose }: EditModalProps) {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-bold text-gray-900">עריכת משימה</h2>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+    <ModalOverlay onClose={onClose}>
+      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <h2 className="text-lg font-bold text-gray-900">משימה חדשה</h2>
+        <CloseButton onClick={onClose} />
+      </div>
+
+      <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4">
+        {/* Title */}
+        <div>
+          <label className={LABEL_CLS}>
+            כותרת <span className="text-red-400">*</span>
+          </label>
+          <input
+            autoFocus
+            required
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className={INPUT_CLS}
+            placeholder="שם המשימה..."
+          />
         </div>
 
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">כותרת המשימה</label>
-            <input
-              autoFocus
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSave()}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#6c3fff]/50 focus:border-[#6c3fff] transition-colors"
-            />
-          </div>
+        {/* for_whom */}
+        <div>
+          <label className={LABEL_CLS}>עבור</label>
+          <input
+            value={forWhom}
+            onChange={(e) => setForWhom(e.target.value)}
+            className={INPUT_CLS}
+            placeholder="למי המשימה מיועדת?"
+          />
+        </div>
 
+        {/* Priority + Due date — two columns */}
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">סטטוס</label>
+            <label className={LABEL_CLS}>עדיפות</label>
             <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as TaskStatus)}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#6c3fff]/50 focus:border-[#6c3fff] transition-colors bg-white"
+              value={priority}
+              onChange={(e) => setPriority(Number(e.target.value) as TaskPriority)}
+              className={INPUT_CLS}
             >
-              {(Object.entries(STATUS_LABELS) as [TaskStatus, string][]).map(([val, label]) => (
-                <option key={val} value={val}>{label}</option>
+              {PRIORITY_OPTIONS.map((p) => (
+                <option key={p.value} value={p.value}>{p.label}</option>
               ))}
             </select>
           </div>
-
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">עדיפות</label>
-            <div className="flex gap-2">
-              {([1, 2, 3] as const).map((p) => {
-                const labels: Record<number, string> = { 1: "גבוהה", 2: "בינונית", 3: "נמוכה" };
-                const colors: Record<number, string> = {
-                  1: "border-red-300 bg-red-50 text-red-700",
-                  2: "border-amber-300 bg-amber-50 text-amber-700",
-                  3: "border-gray-300 bg-gray-50 text-gray-600",
-                };
-                return (
-                  <button
-                    key={p}
-                    onClick={() => setPriority(p)}
-                    className={`flex-1 py-2 text-sm rounded-lg border-2 font-medium transition-all ${
-                      priority === p ? colors[p] : "border-gray-200 text-gray-400 hover:border-gray-300"
-                    }`}
-                  >
-                    {labels[p]}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">תאריך יעד</label>
+            <label className={LABEL_CLS}>תאריך יעד</label>
             <input
               type="date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#6c3fff]/50 focus:border-[#6c3fff] transition-colors"
+              className={INPUT_CLS}
             />
           </div>
         </div>
 
-        <div className="flex gap-3 mt-6">
+        {/* Description — optional */}
+        <div>
+          <label className={LABEL_CLS}>
+            פרטים{" "}
+            <span className="text-gray-400 font-normal text-xs">(אופציונלי)</span>
+          </label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={3}
+            className={`${INPUT_CLS} resize-y`}
+            placeholder="תיאור, לינקים, הוראות..."
+          />
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-3 pt-1">
           <button
-            onClick={handleSave}
-            disabled={!title.trim() || saving}
-            className="flex-1 bg-[#6c3fff] text-white rounded-lg py-2.5 text-sm font-semibold hover:bg-[#5a2de0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {saving ? "שומר..." : "שמירה"}
-          </button>
-          <button
+            type="button"
             onClick={onClose}
-            className="flex-1 border border-gray-300 text-gray-700 rounded-lg py-2.5 text-sm font-semibold hover:bg-gray-50 transition-colors"
+            className="flex-1 border border-gray-300 text-gray-700 rounded-lg py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors"
           >
             ביטול
           </button>
+          <button
+            type="submit"
+            disabled={!title.trim() || saving}
+            className="flex-1 bg-[#6c3fff] text-white rounded-lg py-2.5 text-sm font-semibold hover:bg-[#5a2de0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-[#6c3fff]/20"
+          >
+            {saving ? "יוצר..." : "יצירת משימה"}
+          </button>
         </div>
-      </div>
-    </div>
+      </form>
+    </ModalOverlay>
   );
 }
 
-// ── Main Client Component ────────────────────────────────────────────────────
+// ── Main Client Component ─────────────────────────────────────────────────────
 
 type Props = {
   initialProjects: Project[];
@@ -171,7 +377,6 @@ type Props = {
 };
 
 export default function TasksClient({ initialProjects, initialTasks, userName }: Props) {
-  // Hydrate with colors (generated from ID, stable across renders)
   const [projects, setProjects] = useState<Project[]>(
     initialProjects.map((p) => ({ ...p, color: p.color ?? projectColor(p.id) }))
   );
@@ -181,8 +386,9 @@ export default function TasksClient({ initialProjects, initialTasks, userName }:
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [newTaskOpen, setNewTaskOpen] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
 
   const filteredTasks = useMemo(
@@ -206,14 +412,13 @@ export default function TasksClient({ initialProjects, initialTasks, userName }:
     };
   }, [tasks, selectedProjectId]);
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
-
   function handleError(e: unknown) {
     setError(e instanceof Error ? e.message : "שגיאה לא ידועה");
   }
 
-  // ── Task Handlers ──────────────────────────────────────────────────────────
+  // ── Task handlers ──────────────────────────────────────────────────────────
 
+  // Quick-add from the inline bottom input (title only)
   const handleAddTask = async (title: string) => {
     if (!selectedProjectId) return;
     setError(null);
@@ -230,9 +435,21 @@ export default function TasksClient({ initialProjects, initialTasks, userName }:
     }
   };
 
-  const handleNewTaskFromHeader = async () => {
-    const title = window.prompt("שם המשימה החדשה:");
-    if (title?.trim()) await handleAddTask(title.trim());
+  // Full-create from the NewTaskModal
+  const handleAddFullTask = async (input: NewTaskInput) => {
+    if (!selectedProjectId) return;
+    setError(null);
+    try {
+      const newTask = await createTask({
+        project_id: selectedProjectId,
+        status: "todo",
+        ...input,
+      });
+      setTasks((prev) => [...prev, newTask]);
+      setNewTaskOpen(false);
+    } catch (e) {
+      handleError(e);
+    }
   };
 
   const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
@@ -245,7 +462,7 @@ export default function TasksClient({ initialProjects, initialTasks, userName }:
       const updated = await updateTask(taskId, { status: newStatus });
       setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
     } catch (e) {
-      // Revert optimistic update on failure
+      // Revert on failure
       setTasks((prev) =>
         prev.map((t) =>
           t.id === taskId ? { ...t, status: tasks.find((x) => x.id === taskId)!.status } : t
@@ -277,7 +494,19 @@ export default function TasksClient({ initialProjects, initialTasks, userName }:
     }
   };
 
-  // ── Project Handlers ───────────────────────────────────────────────────────
+  const handleDeleteFromModal = async () => {
+    if (!editingTask) return;
+    await handleDelete(editingTask.id);
+    setEditingTask(null);
+  };
+
+  // ── Project handlers ───────────────────────────────────────────────────────
+
+  // Selects a project and closes the mobile sidebar so the task list is visible
+  const handleSelectProject = (id: string) => {
+    setSelectedProjectId(id);
+    setIsMobileSidebarOpen(false);
+  };
 
   const handleAddProject = async (name: string) => {
     setError(null);
@@ -297,7 +526,6 @@ export default function TasksClient({ initialProjects, initialTasks, userName }:
       await deleteProject(id);
       setProjects((prev) => prev.filter((p) => p.id !== id));
       setTasks((prev) => prev.filter((t) => t.project_id !== id));
-      // Select the first remaining project
       const remaining = projects.filter((p) => p.id !== id);
       setSelectedProjectId(remaining[0]?.id ?? "");
     } catch (e) {
@@ -312,13 +540,16 @@ export default function TasksClient({ initialProjects, initialTasks, userName }:
       <AppShell
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
-        onNewTask={handleNewTaskFromHeader}
+        onNewTask={() => setNewTaskOpen(true)}
         userName={userName}
+        isMobileSidebarOpen={isMobileSidebarOpen}
+        onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
+        onCloseMobileSidebar={() => setIsMobileSidebarOpen(false)}
         sidebar={
           <ProjectsSidebar
             projects={projects}
             selectedProjectId={selectedProjectId}
-            onSelectProject={setSelectedProjectId}
+            onSelectProject={handleSelectProject}
             onAddProject={handleAddProject}
             onDeleteProject={handleDeleteProject}
           />
@@ -332,10 +563,7 @@ export default function TasksClient({ initialProjects, initialTasks, userName }:
                 <span>⚠</span>
                 <span>{error}</span>
               </div>
-              <button
-                onClick={() => setError(null)}
-                className="text-red-400 hover:text-red-600 font-bold"
-              >
+              <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600 font-bold">
                 ×
               </button>
             </div>
@@ -404,7 +632,15 @@ export default function TasksClient({ initialProjects, initialTasks, userName }:
         <EditModal
           task={editingTask}
           onSave={handleSaveEdit}
+          onDelete={handleDeleteFromModal}
           onClose={() => setEditingTask(null)}
+        />
+      )}
+
+      {newTaskOpen && (
+        <NewTaskModal
+          onAdd={handleAddFullTask}
+          onClose={() => setNewTaskOpen(false)}
         />
       )}
     </>

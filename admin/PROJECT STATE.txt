@@ -1,0 +1,357 @@
+PROJECT STATE – Smart Personal Todo
+1. סטטוס כללי
+
+האפליקציה עובדת end-to-end ב־Production.
+
+כולל:
+
+Next.js App Router
+
+Supabase Auth
+
+Projects
+
+Tasks CRUD
+
+Logout
+
+RLS
+
+Deploy ל־Vercel
+
+GitHub מחובר
+
+עבודה תקינה גם בווב וגם במובייל ברוב הזרימות
+
+Production URL:
+
+https://v0-to-do-list-seven-lilac.vercel.app
+
+עמוד משימות:
+
+/tasks
+2. סטאק טכנולוגי
+Frontend
+
+Next.js 16
+
+React 19
+
+TypeScript
+
+Tailwind
+
+Backend
+
+Supabase
+
+PostgreSQL
+
+Auth
+
+RLS
+
+Deployment
+
+Vercel
+
+Version Control
+
+Git + GitHub
+
+Repo:
+
+tamibak-svg/to-do-list
+3. מבנה קיים
+נתיבים מרכזיים
+
+/login
+
+/signup
+
+/tasks
+
+קבצים מרכזיים
+
+src/app/actions/tasks.ts
+
+src/app/actions/projects.ts
+
+src/app/actions/auth.ts
+
+src/app/tasks/page.tsx
+
+src/app/tasks/TasksClient.tsx
+
+src/components/AppShell.tsx
+
+src/components/ProjectsSidebar.tsx
+
+src/components/TasksTable.tsx
+
+src/lib/supabase/client.ts
+
+src/lib/supabase/server.ts
+
+4. פונקציונליות שכבר קיימת
+Auth
+
+Signup
+
+Login
+
+Logout
+
+Protected route ל־/tasks
+
+Projects
+
+יצירת פרויקט
+
+מחיקת פרויקט
+
+בחירת פרויקט בסיידבר
+
+Tasks
+
+יצירת משימה
+
+עריכת משימה
+
+שינוי סטטוס
+
+מחיקת משימה
+
+חיפוש משימות
+
+סטטיסטיקה בסיסית
+
+UI
+
+Sidebar לפרויקטים
+
+Modal לעריכת משימה
+
+Layout תקין
+
+תצוגה טובה יחסית גם בנייד
+
+Security
+
+RLS עובד
+
+הפרדת משתמשים תקינה
+
+משתמשים לא רואים נתונים של אחרים
+
+5. מבנה טבלת tasks כרגע
+
+השדות הקיימים:
+
+id
+user_id
+project_id
+title
+description
+status
+priority
+due_date
+created_at
+completed_at
+for_whom
+
+הערה:
+
+השדה for_whom נוסף בהצלחה
+
+הוא עדיין לא חובר בצורה מלאה בכל ה־UI
+
+6. מה נבדק ועובד
+Local
+
+login
+
+logout
+
+create task
+
+update task
+
+delete task
+
+refresh
+
+project switching בווב
+
+Production
+
+האתר עלה תקין
+
+CRUD תקין
+
+logout תקין
+
+האפליקציה מוצגת יפה גם במובייל
+
+7. באגים / נושאים פתוחים
+באג מובייל – Sidebar פרויקטים
+
+במובייל:
+
+בחירת פרויקט אחר כן עובדת
+
+המשימות של הפרויקט האחר כן נטענות
+
+אבל ה־sidebar לא נסגר אוטומטית
+
+המצב כרגע:
+
+צריך לסגור ידנית את הסיידבר כדי לראות שעבר לפרויקט החדש
+
+סטטוס:
+
+לא תוקן
+
+לעצור כאן, לא להמשיך להתעקש כרגע
+
+8. החלטות UX שכבר התקבלו
+רשימת משימות
+
+הוחלט שעדיף לצמצם עומס.
+
+במקום להדגיש:
+
+עודכן
+
+תאריך יעד
+
+הכיוון הוא להעדיף:
+
+כותרת
+
+עבור
+
+סטטוס
+
+עדיפות
+
+פעולות
+
+מסך עריכת משימה
+
+הוגדר כיוון למסך עריכה משופר עם:
+
+title
+
+for_whom
+
+description
+
+שדה טקסט ארוך לתוכן מודבק / לינקים / הערות
+
+priority קטן ופשוט
+
+completed / status פשוט
+
+התאמה לנייד
+
+נוצר דמו עיצובי בקאנבס למסך עריכת משימה.
+
+9. קבצי עזר / ניהול עבודה
+
+נוצר:
+
+TEST_CHECKLIST.md
+
+תוכן הבדיקה כולל:
+
+auth
+
+CRUD
+
+security
+
+local
+
+production
+
+Workflow עבודה שהוגדר:
+
+LOCAL → TEST → COMMIT → PUSH → VERIFY PRODUCTION
+10. מה לא לעשות כרגע
+
+לא להמשיך לרדוף אחרי באג המובייל של סגירת הסיידבר כרגע
+
+לא לפתוח עכשיו refactor גדול
+
+לא להעמיס עוד UX fixes לפני מנוחה
+
+11. השלב הבא
+הנושא הבא:
+תת־משימות + קישורי קבוצה
+12. כיוון הפיתוח הבא
+A. תת־משימות
+
+המטרה:
+להפוך כל משימה ליחידת עבודה שאפשר לפרק.
+
+כיוון:
+
+Task
+ ├ Subtask
+ ├ Subtask
+ └ Subtask
+
+פיצ'רים עתידיים:
+
+יצירת תת־משימה
+
+סימון הושלמה / לא הושלמה
+
+מונה התקדמות
+
+הצגה בתוך מסך עריכת משימה או עמוד משימה
+
+B. קישורי קבוצה
+
+המטרה:
+להכין בסיס לשיתוף משימות בין כמה אנשים.
+
+כיוון:
+
+Groups
+
+Members
+
+Join by link / code
+
+פרויקטים משותפים
+
+משימות משותפות
+
+13. סדר מומלץ להמשך
+Sprint הבא
+
+אפיון מודל subtasks
+
+יצירת טבלת subtasks
+
+CRUD בסיסי לתת־משימות
+
+הצגה בסיסית ב־UI
+
+אחר כך קישורי קבוצה / groups
+
+14. ניסוח פתיחה לצ'אט הבא
+
+כשתרצה להמשיך, תפתח צ'אט חדש ותדביק:
+
+PROJECT STATE
+
+השלב הבא:
+תת־משימות + קישורי קבוצה
+
+בוא נתחיל ממודל הנתונים והטבלאות של subtasks.
+
+עשית כאן קפיצה יפה מאוד.
+יש לך כבר מוצר עובד, פרוס, ונקי מספיק כדי להתחיל את השלב הבא כמו שצריך.

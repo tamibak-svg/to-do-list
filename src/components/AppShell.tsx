@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -12,6 +12,9 @@ type Props = {
   sidebar: React.ReactNode;
   children: React.ReactNode;
   userName?: string;
+  isMobileSidebarOpen: boolean;
+  onOpenMobileSidebar: () => void;
+  onCloseMobileSidebar: () => void;
 };
 
 export default function AppShell({
@@ -21,9 +24,11 @@ export default function AppShell({
   sidebar,
   children,
   userName = "משתמש",
+  isMobileSidebarOpen,
+  onOpenMobileSidebar,
+  onCloseMobileSidebar,
 }: Props) {
   const router = useRouter();
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -38,7 +43,7 @@ export default function AppShell({
         <div className="flex items-center gap-3 px-4 py-3">
           {/* Mobile: sidebar toggle */}
           <button
-            onClick={() => setIsMobileSidebarOpen(true)}
+            onClick={onOpenMobileSidebar}
             className="md:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
             aria-label="פתח פרויקטים"
           >
@@ -149,7 +154,7 @@ export default function AppShell({
             {/* Backdrop */}
             <div
               className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-              onClick={() => setIsMobileSidebarOpen(false)}
+              onClick={onCloseMobileSidebar}
             />
             {/* Sidebar panel — on the right side for RTL */}
             <aside
@@ -159,7 +164,7 @@ export default function AppShell({
               <div className="relative h-full">
                 {/* Close button */}
                 <button
-                  onClick={() => setIsMobileSidebarOpen(false)}
+                  onClick={onCloseMobileSidebar}
                   className="absolute top-3 left-3 z-10 p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
                   aria-label="סגור"
                 >

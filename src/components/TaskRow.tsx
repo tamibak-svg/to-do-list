@@ -39,32 +39,8 @@ const PRIORITY_DOT: Record<TaskPriority, string> = {
   3: "bg-gray-300",
 };
 
-function formatDate(dateStr?: string | null): string {
-  if (!dateStr) return "—";
-  // Handles both "YYYY-MM-DD" and full ISO timestamps "YYYY-MM-DDTHH:mm:ss..."
-  const datePart = dateStr.split("T")[0];
-  const parts = datePart.split("-");
-  if (parts.length !== 3) return "—";
-  const [year, month, day] = parts;
-  return `${day}/${month}/${year}`;
-}
-
-function isDueSoon(dateStr?: string | null): boolean {
-  if (!dateStr) return false;
-  const due = new Date(dateStr);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const diff = (due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
-  return diff >= 0 && diff <= 2;
-}
-
 export default function TaskRow({ task, onStatusChange, onDelete, onEdit }: Props) {
   const done = task.status === "done";
-  const overdue =
-    task.due_date != null &&
-    !done &&
-    new Date(task.due_date) < new Date(new Date().toDateString());
-  const soon = isDueSoon(task.due_date) && !done;
 
   return (
     <tr className="hover:bg-purple-50/40 transition-colors group border-b border-gray-100 last:border-0">
@@ -83,6 +59,11 @@ export default function TaskRow({ task, onStatusChange, onDelete, onEdit }: Prop
             {task.title}
           </span>
         </div>
+      </td>
+
+      {/* for_whom */}
+      <td className="px-4 py-3">
+        <span className="text-sm text-gray-600">{task.for_whom || "—"}</span>
       </td>
 
       {/* Status — dropdown styled as badge */}
@@ -107,27 +88,6 @@ export default function TaskRow({ task, onStatusChange, onDelete, onEdit }: Prop
         <span className={`text-xs ${PRIORITY_COLORS[task.priority]}`}>
           {PRIORITY_LABELS[task.priority]}
         </span>
-      </td>
-
-      {/* Due date */}
-      <td className="px-4 py-3 whitespace-nowrap">
-        <span
-          className={`text-sm ${
-            overdue
-              ? "text-red-500 font-medium"
-              : soon
-              ? "text-amber-500 font-medium"
-              : "text-gray-500"
-          }`}
-        >
-          {formatDate(task.due_date)}
-          {overdue && " ⚠"}
-        </span>
-      </td>
-
-      {/* Updated at */}
-      <td className="px-4 py-3 whitespace-nowrap">
-        <span className="text-xs text-gray-400">{formatDate(task.updated_at)}</span>
       </td>
 
       {/* Actions */}

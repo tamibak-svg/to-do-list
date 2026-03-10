@@ -12,12 +12,36 @@ export type TaskPriority = 1 | 2 | 3;
 
 export type Task = {
   id: string;
+  user_id?: string;
   project_id: string;
   title: string;
+  description?: string | null;
+  for_whom?: string | null;
   status: TaskStatus;
   priority: TaskPriority;
-  due_date?: string | null; // ISO date string YYYY-MM-DD
+  due_date?: string | null;      // ISO date string YYYY-MM-DD
+  completed_at?: string | null;  // ISO timestamp when marked done
   order_index?: number;
-  created_at?: string; // ISO timestamp from DB
-  updated_at: string;  // ISO timestamp from DB
+  created_at?: string;           // ISO timestamp from DB
+  updated_at: string;            // ISO timestamp from DB
 };
+
+export type CreateTaskInput = {
+  project_id: string;
+  title: string;
+  for_whom?: string;
+  description?: string;
+  status?: TaskStatus;
+  priority?: TaskPriority;
+  due_date?: string;
+};
+
+export type UpdateTaskPatch = Partial<{
+  title: string;
+  for_whom: string | null;
+  description: string | null;
+  status: TaskStatus;
+  priority: TaskPriority;
+  due_date: string | null;
+  completed_at: string | null;
+}>;

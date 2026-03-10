@@ -1,3 +1,4 @@
+import { logout } from "@/app/actions/auth";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { listProjects } from "@/app/actions/projects";
@@ -22,17 +23,32 @@ export default async function TasksPage() {
     listTasks(),
   ]);
 
-  // Extract a display name: prefer full_name metadata, fall back to email prefix.
   const userName =
     (user.user_metadata?.full_name as string | undefined) ??
     user.email?.split("@")[0] ??
     "משתמש";
 
   return (
-    <TasksClient
-      initialProjects={projects}
-      initialTasks={tasks}
-      userName={userName}
-    />
+    <div>
+      <form action={logout}>
+        <button
+          type="submit"
+          style={{
+            background: "#ef4444",
+            color: "white",
+            padding: "6px 12px",
+            borderRadius: "6px"
+          }}
+        >
+          Logout
+        </button>
+      </form>
+
+      <TasksClient
+        initialProjects={projects}
+        initialTasks={tasks}
+        userName={userName}
+      />
+    </div>
   );
 }

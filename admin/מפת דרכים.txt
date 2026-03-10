@@ -1,0 +1,331 @@
+מפת דרכים מעודכנת
+שלב 1 — ייצוב הבסיס
+
+מטרה: מערכת יציבה, מאובטחת, וברורה.
+
+כולל:
+
+login
+
+signup
+
+logout
+
+protected routes
+
+middleware
+
+session handling
+
+redirect תקין
+
+טיפול בסיסי בשגיאות
+
+שלב 2 — שדרוג מודל המשימות
+
+מטרה: להפוך משימה ליחידת עבודה שלמה.
+
+כולל:
+
+title
+
+description
+
+status
+
+priority
+
+due_date
+
+notes
+
+created_at
+
+updated_at
+
+project_id
+
+owner_user_id
+
+שלב 3 — תת־משימות ומדדים
+
+מטרה: פירוק עבודה ומעקב.
+
+כולל:
+
+subtasks
+
+progress
+
+מונה פתוחות/סגורות
+
+מונה משימות פתוחות בקטגוריות / פרויקטים
+
+שלב 4 — Projects וקטגוריות
+
+מטרה: שכבת ארגון טובה.
+
+כולל:
+
+יצירה / עריכה / מחיקה של פרויקט
+
+צבע / אייקון
+
+סדר תצוגה
+
+פילטרים
+
+מונה open tasks
+
+שלב 5 — סביבת בדיקות והקשחה לפני פרודקשן
+
+מטרה: לעבוד בלוקל בצורה בטוחה לפני העלאה לווב.
+
+זה שלב חדש וחשוב מאוד.
+
+מה הוא כולל
+א. זרימת עבודה קבועה
+
+קודם מפתחים בלוקל
+
+בודקים ידנית תרחישים חשובים
+
+רק אחר כך מעלים ל־GitHub
+
+ואז deploy ל־Vercel
+
+ב. checklist קבוע לפני העלאה
+
+בכל פיצ'ר חדש לבדוק:
+
+יצירת רשומה
+
+עריכת רשומה
+
+מחיקת רשומה
+
+קריאת רשומות
+
+סינון נכון
+
+הרשאות לפי משתמש
+
+שאין שגיאת redirect
+
+שאין שגיאת RLS
+
+שאין כפתור שנראה תקין אבל לא באמת עובד
+
+ג. בדיקות למחיקה במיוחד
+
+כאן אתה צודק מאוד — מחיקה זה אזור רגיש.
+
+צריך לבדוק:
+
+האם אפשר למחוק רק רשומות של המשתמש הנכון
+
+האם כפתור המחיקה באמת מוחק
+
+האם ה־UI מתרענן אחרי מחיקה
+
+האם מחיקת parent שוברת child records
+
+האם מחיקת project משפיעה על tasks
+
+האם נדרש soft delete בעתיד
+
+ד. בדיקות לוקל מול ווב
+
+בכל שינוי חשוב לבדוק:
+
+בלוקל
+
+בפרודקשן
+
+עם משתמש אחד
+
+עם משתמש שני
+
+כדי לזהות:
+
+בעיות env
+
+בעיות auth
+
+בעיות cookies
+
+בעיות RLS
+
+בעיות redirect
+
+בעיות hydrate / build
+
+ה. staging mindset
+
+גם אם אין לך staging אמיתי, עובדים כאילו יש:
+
+Local -> Test -> Push -> Deploy -> Verify Production
+שלב 6 — Groups / Households
+
+מטרה: מעבר לאפליקציה שיתופית.
+
+כולל:
+
+groups
+
+group_members
+
+roles
+
+admins
+
+join by code
+
+shared projects
+
+shared tasks
+
+שלב 7 — AI
+
+מטרה: להוסיף ערך חכם.
+
+כולל:
+
+פירוק משימה לתת־משימות
+
+הצעת סדר עדיפויות
+
+ניסוח מחדש
+
+תכנון יומי
+
+סיכום מצב
+
+שלב 8 — polish ושיפורי UX
+
+מטרה: מוצר נעים ויציב.
+
+כולל:
+
+mobile responsive
+
+טעינה מהירה
+
+empty states
+
+שגיאות ידידותיות
+
+ניקוי עיצוב
+
+שיפור חוויית משתמש
+
+הסדר המעשי שאני ממליץ
+Sprint 1
+
+logout
+
+auth stabilization
+
+error handling בסיסי
+
+Sprint 2
+
+שדות חיוניים למשימה
+
+עדכון טפסים ו־CRUD
+
+Sprint 3
+
+subtasks
+
+progress
+
+open counters
+
+Sprint 4
+
+projects improvements
+
+counters per project
+
+filters
+
+Sprint 5
+
+local testing workflow
+
+delete safety
+
+production verification checklist
+
+Sprint 6
+
+groups
+
+Sprint 7
+
+AI
+
+Sprint 8
+
+mobile + polish
+
+כלל עבודה קבוע מעכשיו
+
+על כל שינוי מהותי נעבוד כך:
+
+1. מפתחים בלוקל
+2. בודקים CRUD מלא
+3. בודקים הרשאות
+4. בודקים מחיקה
+5. מעלים ל־Git
+6. בודקים בפרודקשן
+7. רק אז ממשיכים
+
+זה יחסוך לך הרבה בלגן.
+
+עיקרון חשוב מאוד
+
+כל feature חדש צריך לעבור 3 שאלות:
+
+1. האם זה עובד בלוקל?
+2. האם זה עובד עם RLS והרשאות?
+3. האם זה עובד גם אחרי deploy?
+
+אם אחת מהתשובות היא לא, לא ממשיכים הלאה.
+
+הניסוח שאני מציע להכניס ל־PROJECT STATE / ROADMAP
+Testing & Release Workflow
+
+Before every production deploy:
+
+test locally first
+
+verify create / read / update / delete
+
+verify user isolation and RLS
+
+verify delete flows carefully
+
+push only after local validation
+
+verify production after deploy
+
+only then continue to next feature
+
+דעתי
+
+זו תוספת של מפתח שחושב נכון.
+כי הרבה פעמים לא נופלים על הפיתוח עצמו — נופלים על:
+
+deploy
+
+auth
+
+permissions
+
+delete
+
+redirect
+
+schema mismatch

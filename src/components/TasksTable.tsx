@@ -13,12 +13,21 @@ type Props = {
   isLoading?: boolean;
 };
 
+const STATUS_ORDER: Record<string, number> = { todo: 0, doing: 1, done: 2 };
+
+function sortTasks(tasks: Task[]): Task[] {
+  return [...tasks].sort((a, b) => {
+    const statusDiff = (STATUS_ORDER[a.status] ?? 0) - (STATUS_ORDER[b.status] ?? 0);
+    if (statusDiff !== 0) return statusDiff;
+    return a.priority - b.priority;
+  });
+}
+
 const COL_HEADERS = [
   { label: "כותרת", className: "min-w-[200px]" },
+  { label: "עבור", className: "min-w-[120px]" },
   { label: "סטטוס", className: "" },
   { label: "עדיפות", className: "" },
-  { label: "תאריך יעד", className: "" },
-  { label: "עודכן", className: "" },
   { label: "פעולות", className: "" },
 ];
 
@@ -52,7 +61,7 @@ export default function TasksTable({
             {/* Loading state */}
             {isLoading && (
               <tr>
-                <td colSpan={6} className="px-4 py-16 text-center">
+                <td colSpan={5} className="px-4 py-16 text-center">
                   <div className="flex flex-col items-center gap-3">
                     <div className="w-8 h-8 border-2 border-[#6c3fff] border-t-transparent rounded-full animate-spin" />
                     <p className="text-gray-400 text-sm">טוען משימות...</p>
@@ -64,7 +73,7 @@ export default function TasksTable({
             {/* Empty state */}
             {!isLoading && tasks.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-20 text-center">
+                <td colSpan={5} className="px-4 py-20 text-center">
                   <div className="flex flex-col items-center gap-4">
                     <div className="w-16 h-16 bg-purple-50 rounded-2xl flex items-center justify-center">
                       <svg
@@ -95,7 +104,7 @@ export default function TasksTable({
 
             {/* Task rows */}
             {!isLoading &&
-              tasks.map((task) => (
+              sortTasks(tasks).map((task) => (
                 <TaskRow
                   key={task.id}
                   task={task}
