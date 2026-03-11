@@ -1,19 +1,8 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import type { CreateTaskInput, UpdateTaskPatch } from "@/types/models";
-
-export type UpdateTaskPatch = {
-  title?: string;
-  description?: string;
-  status?: "todo" | "doing" | "done";
-  priority?: 1 | 2 | 3;
-  due_date?: string;
-  for_whom?: string;
-  completed_at?: string | null;
-};
-
-export type { UpdateTaskPatch };
+import type { CreateTaskInput } from "@/types/models";
+import type { UpdateTaskPatch } from "@/types/tasks";
 
 /* -------------------- */
 /* LIST TASKS           */

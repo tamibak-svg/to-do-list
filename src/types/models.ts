@@ -35,13 +35,3 @@ export type CreateTaskInput = {
   priority?: TaskPriority;
   due_date?: string;
 };
-
-export type UpdateTaskPatch = Partial<{
-  title: string;
-  for_whom: string | null;
-  description: string | null;
-  status: TaskStatus;
-  priority: TaskPriority;
-  due_date: string | null;
-  completed_at: string | null;
-}>;

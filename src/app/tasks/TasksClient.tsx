@@ -10,9 +10,8 @@ import {
   createTask,
   updateTask,
   deleteTask,
-  type UpdateTaskPatch,
 } from "@/app/actions/tasks";
-
+import type { UpdateTaskPatch } from "@/types/tasks";
 // ── Deterministic color from project id ──────────────────────────────────────
 const PALETTE = [
   "#6366f1", "#10b981", "#f59e0b", "#ef4444",
